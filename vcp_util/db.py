@@ -11,7 +11,7 @@ import sys
 import os
 import time
 
-from stock_vcpscreener.vcp_util.util import get_last_trade_day, convert_strdate_datetime
+from vcp_util.util import get_last_trade_day, convert_strdate_datetime
 pd.options.mode.chained_assignment = None
 
 
@@ -208,7 +208,7 @@ def create_stock_database(stock_list, csvdir_name, source):
             except Exception as inst:
                 print(inst)
                 with open(csvdir_name+stock.strip().ljust(5,'_')+'.txt', 'w') as out_file:
-                    out_file.write(inst)
+                    out_file.write(str(inst))
                     out_file.write(f'Last try on {end_date}')
         else:
             print(f"File {outfilename} exists")

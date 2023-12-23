@@ -12,12 +12,12 @@ import mplfinance as mpf
 import sys
 import os
 
-from stock_vcpscreener.vcp_util.util import gen_report_front_page, gen_report_output_page, gen_report_combine, \
+from vcp_util.util import gen_report_front_page, gen_report_output_page, gen_report_combine, \
                                             gen_report_breadth_page, \
                                             convert_report_dict_to_df, convert_png_jpg, cleanup_dir_jpg_png, \
                                             get_last_trade_day
-from stock_vcpscreener.vcp_util.stat import compute_rs_rank, compute_rs_rating
-from stock_vcpscreener.vcp_util.db import create_index_database, update_index_database, \
+from vcp_util.stat import compute_rs_rank, compute_rs_rating
+from vcp_util.db import create_index_database, update_index_database, \
                                           create_stock_database, update_stock_database, \
                                           get_index_lastday, get_stock_data_specific_date
 # if not sys.warnoptions:
@@ -32,7 +32,7 @@ class StockVCPScreener:
     '''
 
     # Set up paths and directories
-    toplevel_path = 'stock_vcpscreener/'
+    toplevel_path = 'output/'
     csvdatmain_name  = toplevel_path+'./db_yfinance/'  # Directory storing stock data csv
     csvdatstooq_name = toplevel_path+'./db_stooq/'     # Directory storing stock data from stooq for crosscheck
     output_path = toplevel_path+'./output/'            # Output directory for storing PDFs
@@ -119,6 +119,7 @@ class StockVCPScreener:
 
 
     def verify_report_feasibility(self):
+        return 1
         '''
         Check if we can compile a report of the selected date
         See if the database is updated enough
@@ -129,7 +130,9 @@ class StockVCPScreener:
             lastupdate = pd.read_csv(self.csvdatmain_name+"last_update.dat", header=0)
             lastupdate['Date']=pd.to_datetime(lastupdate['Date'])
             lastupdate_day = lastupdate['Date'][0]
-            if (lastupdate_day.date() - self.date_study).days >= 0:
+            print('sdfsfsd', lastupdate_day)
+            print('dfsfdsfsd', self.date_study)
+            if (lastupdate_day- self.date_study).days >= 0:
                 # Second check - check last day of the GSPC index dataset
                 index_lastupdate_day = get_index_lastday(self.csvdatmain_name)
                 if (index_lastupdate_day.date() - self.date_study).days >= 0:
@@ -192,10 +195,10 @@ class StockVCPScreener:
                     continue
                 else:
                     # print(f'Computing info for {stock} ...')
-                    current_close = df['Adj Close'][-1]
-                    ytd_close = df['Adj Close'][-2]
-                    turnover = df['Volume'][-1] * df['Adj Close'][-1]
-                    true_range_10d = (max(df['Adj Close'][-10:-1]) - min(df['Adj Close'][-10:-1]))
+                    current_close = df['Adj Close'].iloc[-1]
+                    ytd_close = df['Adj Close'].iloc[-2]
+                    turnover = df['Volume'].iloc[-1] * df['Adj Close'].iloc[-1]
+                    true_range_10d = (max(df['Adj Close'].iloc[-10:-1]) - min(df['Adj Close'].iloc[-10:-1]))
 
                     # Compute all the breadth related indices
                     if (current_close > ytd_close):
@@ -222,13 +225,13 @@ class StockVCPScreener:
                     df['SMA_50'] = round(df['Adj Close'].rolling(window=50).mean(), 2)
                     df['SMA_150'] = round(df['Adj Close'].rolling(window=150).mean(), 2)
                     df['SMA_200'] = round(df['Adj Close'].rolling(window=200).mean(), 2)
-                    mov_avg_20 = df['SMA_20'][-1]
-                    mov_avg_50 = df['SMA_50'][-1]
-                    mov_avg_150 = df['SMA_150'][-1]
-                    mov_avg_200 = df['SMA_200'][-1]
-                    mov_avg_200_20 = df['SMA_200'][-32]    # SMA 200 1 month before (for calculating trending condition)
-                    low_of_52week = min(df['Adj Close'][-250:])
-                    high_of_52week = max(df['Adj Close'][-250:])
+                    mov_avg_20 = df['SMA_20'].iloc[-1]
+                    mov_avg_50 = df['SMA_50'].iloc[-1]
+                    mov_avg_150 = df['SMA_150'].iloc[-1]
+                    mov_avg_200 = df['SMA_200'].iloc[-1]
+                    mov_avg_200_20 = df['SMA_200'].iloc[-32]    # SMA 200 1 month before (for calculating trending condition)
+                    low_of_52week = min(df['Adj Close'].iloc[-250:])
+                    high_of_52week = max(df['Adj Close'].iloc[-250:])
 
                     # Condition checks
                     # Condition 1: Current Price > 150 SMA and > 200 SMA
@@ -279,7 +282,7 @@ class StockVCPScreener:
                        # condit_6 and condit_7 and condit_8 and condit_9 and condit_10 and \
                        # condit_11 and condit_12:
                         self.report_dict['stocks_fit_condition'] += 1
-                        self.selected_stock_list = self.selected_stock_list.append({"Stock": stock, "Index": ind, "RS Rating": rs_rating, "RS Rating 2": rs_rating2, "RS Rating 3": rs_rating3, "50 Day MA": mov_avg_50, "150 Day Ma": mov_avg_150, "200 Day MA": mov_avg_200, "52 Week Low": low_of_52week, "52 week High": high_of_52week}, ignore_index=True)
+                        self.selected_stock_list = self.selected_stock_list._append({"Stock": stock, "Index": ind, "RS Rating": rs_rating, "RS Rating 2": rs_rating2, "RS Rating 3": rs_rating3, "50 Day MA": mov_avg_50, "150 Day Ma": mov_avg_150, "200 Day MA": mov_avg_200, "52 Week Low": low_of_52week, "52 week High": high_of_52week}, ignore_index=True)
                         print(f"/ {stock} matches the requirements! ---")
                     else:
                         print(f"{stock}", end=' ')
@@ -311,6 +314,8 @@ class StockVCPScreener:
         # Generate PNGs and JPGs
         stock_namelist = []
         print('Creating PNG plot for:')
+        
+        print('selected_stock_rs_rank_list', self.selected_stock_rs_rank_list)
 
         for index, cols in self.selected_stock_rs_rank_list.iterrows():
             try:
@@ -333,36 +338,36 @@ class StockVCPScreener:
                     self.report_dict['stock_rs_rating_list'].append(RS_rating)
                     print(f"{name}")
 
-                if name in self.special_index_stock_list.keys():
-                    self.report_dict['index_list'].append(name)
-                    mpf.plot(hist, **kwargs, style=self.special_index_stock_list[name], title=titlename,
-                             savefig=dict(fname=outpngfname,dpi=150,pad_inches=0.1))
-                    convert_png_jpg(outpngfname, outjpgfname)
-                elif (RS_rank > rank_criteria):
-                    mpf.plot(hist, **kwargs, style='charles', title=titlename,
-                             savefig=dict(fname=outpngfname,dpi=150,pad_inches=0.1))
-                    convert_png_jpg(outpngfname, outjpgfname)
+                # if name in self.special_index_stock_list.keys():
+                #     self.report_dict['index_list'].append(name)
+                #     mpf.plot(hist, **kwargs, style=self.special_index_stock_list[name], title=titlename,
+                #              savefig=dict(fname=outpngfname,dpi=150,pad_inches=0.1))
+                #     convert_png_jpg(outpngfname, outjpgfname)
+                # elif (RS_rank > rank_criteria):
+                #     mpf.plot(hist, **kwargs, style='charles', title=titlename,
+                #              savefig=dict(fname=outpngfname,dpi=150,pad_inches=0.1))
+                #     convert_png_jpg(outpngfname, outjpgfname)
             except Exception as e:
                 print(e)
                 print(f"Fail to generate PNG for {name}")
 
         # Generate the front page and charts, then combine them into a single pdf
-        out_status = gen_report_output_page(self.output_path, self.cdir_path)
-        out_msg = gen_report_front_page(self.report_dict, stock_namelist, self.cdir_path)
-        out_status = gen_report_breadth_page(self.report_dict, self.date_study, self.cdir_path)
-        out_status = gen_report_combine(self.cdir_path, self.output_path, self.date_study)
+        # out_status = gen_report_output_page(self.output_path, self.cdir_path)
+        # out_msg = gen_report_front_page(self.report_dict, stock_namelist, self.cdir_path)
+        # out_status = gen_report_breadth_page(self.report_dict, self.date_study, self.cdir_path)
+        # out_status = gen_report_combine(self.cdir_path, self.output_path, self.date_study)
 
         # Convert report dict to df and update self.dsel_info_name
         df = convert_report_dict_to_df(self.report_dict)
         print(df)
-
+        print('sdfjkfjslfks', stock_namelist)
         print(f'Creating dataframe of the trade day {self.date_study}')
         if not os.path.exists(self.dsel_info_name):
             df.to_csv(self.dsel_info_name, index=False)
             print(f'Created {self.dsel_info_name}.')
         else:
             org = pd.read_csv(self.dsel_info_name)
-            new = org.append(df)
+            new = org._append(df)
             new['Date'] =pd.to_datetime(new.Date)
             new.set_index('Date', inplace=True)
             new = new[~new.index.duplicated(keep='last')]
@@ -392,7 +397,7 @@ class StockVCPScreener:
                     if type(tmp_df) != float:
                         tmp_df['RS Rating'] = RS_rating
                         tmp_df['RS Rank'] = RS_rank
-                        out_df = out_df.append(tmp_df)
+                        out_df = out_df._append(tmp_df)
                     else:
                         print(f"Fail to get stock data for {name}")
 
@@ -409,7 +414,7 @@ class StockVCPScreener:
 if __name__ == '__main__':
 
     # Read in companylist.csv
-    data = pd.read_csv('stock_vcpscreener/Tickers.csv', header=0)
+    data = pd.read_csv('./Tickers.csv', header=0)
     stock_list = list(data.Symbol)
 
     # Get the last trade day (take yesterday) from current time
@@ -420,16 +425,19 @@ if __name__ == '__main__':
 
     # Checks
     svs.check_directory()
+    print('directory successfully checked')
     svs.check_index_database()
+    print('index database')
     svs.check_stock_database('yfinance')
+    print('stock database')
 
     # Select Stock
     # normally with overwrite = False
-    svs.select_stock(overwrite=True)
+    svs.select_stock(overwrite=True, writecsv=True)
 
     # Generate report
     svs.generate_report()
-    svs.generate_dash_csv()
+    # svs.generate_dash_csv()
 
 
 

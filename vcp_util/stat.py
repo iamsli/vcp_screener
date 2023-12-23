@@ -28,13 +28,13 @@ def compute_rs_rating(in_df):
     '''
     df = in_df.copy()
 
-    current_close = df["Adj Close"][-1]
-    ytd_close = df["Adj Close"][-2]
-    close_3m = df["Adj Close"][-63]
-    close_6m = df["Adj Close"][-126]
-    close_9m = df["Adj Close"][-189]
+    current_close = df["Adj Close"].iloc[-1]
+    ytd_close = df["Adj Close"].iloc[-2]
+    close_3m = df["Adj Close"].iloc[-63]
+    close_6m = df["Adj Close"].iloc[-126]
+    close_9m = df["Adj Close"].iloc[-189]
     # Most of the time it doesnt really have 250 rows because of missing dates. Used 245 instead.
-    close_12m = df["Adj Close"][-245]
+    close_12m = df["Adj Close"].iloc[-245]
 
     # Compute RS rating of the stock (3 & 6 months, http://forums.worden.com/default.aspx?g=posts&t=14007)
     rs_rating = (((current_close - close_3m)/close_3m) * 40 + ((current_close - close_6m)/close_6m) * 20 + \
